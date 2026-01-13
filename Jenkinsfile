@@ -45,6 +45,33 @@ pipeline {
           '''
         }
       }
+
+	stage('Auto delete branch') {
+  		when {
+    			allOf {
+      				expression { env.CHANGE_BRANCH != null }
+      				expression { currentBuild.currentResult == 'SUCCESS' }
+    			}
+  		}
+  		steps {
+    			withCredentials([string(credentialsId: 'github-pr-token', variable: 'GITHUB_TOKEN')]) {
+      			sh '''
+        echo "Deleting branch: ${CHANGE_BRANCH}"
+
+        if [ "${CHANGE_BRANCH}" = "main" ]; then
+          echo "Refusing to delete main"
+          exit 0
+        fi
+
+        curl -s -X DELETE \
+          -H "Authorization: token ${GITHUB_TOKEN}" \
+          -H "Accept: application/vnd.github+json" \
+          https://api.github.com/repos/Pornput0012/test-jenkins-github-wh/git/refs/heads/${CHANGE_BRANCH}
+      			'''
+    		}
+  }
+}
+
     }
   }
 
