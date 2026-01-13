@@ -1,3 +1,5 @@
 test-auto-merge
 
 test-auto-merge-2
+
+test-auto-merge and auto-delete
