@@ -1,14 +1,19 @@
 pipeline {
   agent any
 
+  environment {
+    OWNER = "Pornput0012"
+    REPO  = "test-jenkins-github-wh"
+  }
+
   stages {
-    stage('Info') {
+    stage('Check PR') {
       steps {
-        echo "Branch: ${env.BRANCH_NAME}"
-        echo "Is PR: ${env.CHANGE_ID != null}"
-        echo "PR Number: ${env.CHANGE_ID}"
-        echo "Source Branch: ${env.CHANGE_BRANCH}"
-        echo "Target Branch: ${env.CHANGE_TARGET}"
+        script {
+          if (!env.CHANGE_ID) {
+            error "This pipeline runs only for Pull Requests"
+          }
+        }
       }
     }
 
@@ -16,9 +21,24 @@ pipeline {
       steps {
         sh '''
           echo "Running shell script..."
-          echo "Hello from Jenkins PR pipeline"
+          sleep 2
         '''
+      }
+    }
+
+    stage('Comment PR') {
+      steps {
+        withCredentials([string(credentialsId: 'github-pr-token', variable: 'GITHUB_TOKEN')]) {
+          sh '''
+            curl -s -X POST \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              https://api.github.com/repos/$OWNER/$REPO/issues/$CHANGE_ID/comments \
+              -d "{\"body\":\"✅ Jenkins build passed\"}"
+          '''
+        }
       }
     }
   }
 }
+
