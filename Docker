@@ -1,0 +1,31 @@
+FROM jenkins/jenkins:lts-jdk17
+
+USER root
+
+# 1. ลงโปรแกรมพื้นฐาน และ Python
+RUN apt-get update && apt-get install -y lsb-release curl python3 python3-pip python3-venv
+
+# 2. เพิ่ม GPG Key และ Repository ของ Docker
+RUN curl -fsSLo /usr/share/keyrings/docker-archive-keyring.asc \
+  https://download.docker.com/linux/debian/gpg && \
+  echo "deb [arch=$(dpkg --print-architecture) \
+  signed-by=/usr/share/keyrings/docker-archive-keyring.asc] \
+  https://download.docker.com/linux/debian \
+  $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+
+# 3. เพิ่ม GPG Key และ Repository ของ GitHub CLI (gh)
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+
+# 4. ติดตั���ง docker-ce-cli, docker-compose-plugin และ gh
+RUN apt-get update && apt-get install -y docker-ce-cli docker-compose-plugin gh
+
+# 5. สร้างกลุ่ม docker และเอา user jenkins เข้าไปอยู่ในกลุ่มนั้น
+RUN groupadd -g 999 docker && usermod -aG docker jenkins
+
+# 6. ตรวจสอบเวอร์ชัน
+RUN docker --version && docker compose version && gh --version
+
+USER jenkins
+# RUN jenkins-plugin-cli --plugins "blueocean docker-workflow"
